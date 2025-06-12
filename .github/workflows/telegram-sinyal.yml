@@ -28,11 +28,5 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: |
-          CURRENT_HOUR=$(date -u +%H)
-          TR_HOUR=$((CURRENT_HOUR + 3))
-          if [ $TR_HOUR -ge 10 ] && [ $TR_HOUR -lt 18 ]; then
-            echo "Türkiye saatiyle 10:00-18:00 aralığında, bot çalışıyor..."
-            python Telegram.py
-          else
-            echo "Türkiye saatiyle 10:00-18:00 dışında, bot çalıştırılmadı."
-          fi
+          echo "Bot çalışıyor..."
+          python Telegram.py
