@@ -1,5 +1,5 @@
 # Gerekli kütüphaneleri yükleme
-!pip install requests pandas ta schedule yfinance --quiet
+#!pip install requests pandas ta schedule yfinance --quiet
 
 import pandas as pd
 import numpy as np
