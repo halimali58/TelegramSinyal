@@ -1,6 +1,3 @@
-# Gerekli kütüphaneleri yükleme
-#!pip install requests pandas ta schedule yfinance --quiet
-
 import pandas as pd
 import numpy as np
 import yfinance as yf
@@ -19,8 +16,6 @@ ay_isimleri = {
 # --- Telegram Bot Yapılandırması ---
 BOT_TOKEN = "7656972647:AAFIgK_-gwpgWF_PMCCvQWVHhFO2GjJZ_uA"
 CHAT_ID = 5082522947
-
-# Türkiye saat dilimi
 TR_TZ = timezone('Europe/Istanbul')
 
 # Telegram'a mesaj gönderme fonksiyonu
@@ -129,8 +124,8 @@ def son_sinyal_al(df, min_onay_bar=3, max_onay_bar=10):
                 break
         if onay_sat and kirmiziya_don[int(son_kirmiziya_don_bar)]:
             hacim_ortalama = np.mean(hacim[-10:]) if len(hacim) >= 10 else 0
-            if hacim[int(son_kirmiziya_don_bar)] > hacim_ortalama:
-                son_sinyal = "SAT"
+        if hacim[int(son_kirmiziya_don_bar)] > hacim_ortalama:
+            son_sinyal = "SAT"
 
     return son_sinyal, son_yesile_don_bar, son_kirmiziya_don_bar, yesilden_beri_bar, kirmizidan_beri_bar
 
@@ -141,7 +136,7 @@ def turkce_tarih_formatla(tarih):
     dt = pd.to_datetime(tarih).astimezone(TR_TZ)
     return f"{dt.day} {ay_isimleri[dt.month]} {dt.year}"
 
-# Sinyal oluşturma (Stop-loss ile, tarih Türkiye saat dilimine göre)
+# Sinyal oluşturma
 def sinyaller_al(df, min_onay_bar=3, max_onay_bar=10, yakinlik_esigi=0.05, stop_loss_faktor=1.0):
     son_sinyal, son_yesile_don_bar, son_kirmiziya_don_bar, yesilden_beri_bar, kirmizidan_beri_bar = son_sinyal_al(df, min_onay_bar, max_onay_bar)
     son_al_sinyal = None
@@ -296,7 +291,6 @@ def veriyi_2_saatlik_yap(df):
 
         df_2h.reset_index(inplace=True)
         df_2h['Date'] = df_2h['Date'].dt.tz_convert(TR_TZ)
-
         print(f"2 saatlik veri oluşturuldu: {len(df_2h)} satır")
         return df_2h
     except Exception as e:
@@ -406,7 +400,7 @@ def bist_hisseleri_tara(hisseler, baslangic_tarihi, bitis_tarihi, min_onay_bar=3
                         f"💰 *Güncel Kapanış:* {guncel_kapanis}\n"
                         f"🚖 *Stop-loss:* {stop_loss_fiyati}\n"
                         f"🕒 *Sinyal Tarih:* {tarih}\n"
-                        f"📅 *Tarih:* 2025-06-12 17:00:06\n"
+                        f"📅 *Tarih:* {datetime.now(TR_TZ).strftime('%Y-%m-%d %H:%M:%S')}\n"
                         f"🔸 *Grafik:* https://tr.tradingview.com/chart/iKuKZamY/?symbol=BIST%3A{hisse.replace('.IS', '')}"
                     )
                     telegram_mesaj_gonder(telegram_mesaj)
@@ -436,7 +430,7 @@ def bist_hisseleri_tara(hisseler, baslangic_tarihi, bitis_tarihi, min_onay_bar=3
                         f"💰 *Güncel Kapanış:* {guncel_kapanis}\n"
                         f"🚖 *Stop-loss:* {stop_loss_fiyati}\n"
                         f"🕒 *Sinyal Tarih:* {tarih}\n"
-                        f"📅 *Tarih:* 2025-06-12 17:00:06\n"
+                        f"📅 *Tarih:* {datetime.now(TR_TZ).strftime('%Y-%m-%d %H:%M:%S')}\n"
                         f"🔸 *Grafik:* https://tr.tradingview.com/chart/iKuKZamY/?symbol=BIST%3A{hisse.replace('.IS', '')}"
                     )
                     telegram_mesaj_gonder(telegram_mesaj)
@@ -449,7 +443,7 @@ def bist_hisseleri_tara(hisseler, baslangic_tarihi, bitis_tarihi, min_onay_bar=3
     return sinyaller
 
 # BIST hisseleri listesi
-bist_hisseleri =[
+bist_hisseleri = [
     'A1CAP.IS', 'A1YEN.IS', 'ACSEL.IS', 'ADEL.IS', 'ADESE.IS', 'ADGYO.IS', 'AEFES.IS', 'AFYON.IS', 'AGESA.IS', 'AGHOL.IS',
     'AGROT.IS', 'AGYO.IS', 'AHGAZ.IS', 'AHSGY.IS', 'AKBNK.IS', 'AKCNS.IS', 'AKENR.IS', 'AKFGY.IS', 'AKFIS.IS', 'AKFYE.IS',
     'AKGRT.IS', 'AKMGY.IS', 'AKSA.IS', 'AKSEN.IS', 'AKSGY.IS', 'AKSUE.IS', 'AKYHO.IS', 'ALARK.IS', 'ALBRK.IS', 'ALCAR.IS',
@@ -515,6 +509,7 @@ baslangic_tarihi = bitis_tarihi - timedelta(days=60)
 
 # Tarama fonksiyonu
 def tarama_yap():
+    print(f"Tarama başlatılıyor: {datetime.now(TR_TZ).strftime('%Y-%m-%d %H:%M:%S')}")
     sinyaller = bist_hisseleri_tara(bist_hisseleri, baslangic_tarihi, bitis_tarihi, interval='60m', gunluk_fallback=True)
     if sinyaller:
         print("\nBulunan Sinyaller:")
@@ -534,29 +529,43 @@ def tarama_yap():
         print("- İşlem saatleri dışında veri (BIST: 09:00-18:00).")
         print("- Supertrend hesaplaması için yeterli veri yok.")
 
-# Otomatik tarama için zamanlama kontrolü
-def otomatik_tarama_kontrol():
-    simdi = datetime.now(TR_TZ)
-    gun = simdi.weekday()
-    saat = simdi.hour
-    dakika = simdi.minute
-
-    if 0 <= gun <= 4 and 10 <= saat < 18:
-        print(f"Otomatik tarama çalışıyor: {simdi.strftime('%Y-%m-%d %H:%M:%S')}")
-        tarama_yap()
-    else:
-        print(f"Tarama dışı saat: {simdi.strftime('%Y-%m-%d %H:%M:%S')} (Hafta içi 10:00-18:00 arası çalışır)")
+# Otomatik tarama için zamanlayıcı ayarları
+def otomatik_tarama_ayarla():
+    print("Otomatik tarama ayarlandı: Hafta içi 10:00-18:00 arasında sürekli tarama.")
 
 # Ana fonksiyon
 def main():
-    if len(sys.argv) > 1 and sys.argv[1].lower() == 'manuel':
-        print("Manuel tarama başlatılıyor...")
-        tarama_yap()
-    else:
-        print("Otomatik tarama başlatılıyor...")
-        while True:
-            otomatik_tarama_kontrol()
-            time.sleep(60)
+    print("Program başlatılıyor...")
+    otomatik_tarama_ayarla()
+    print("Manuel tarama da yapılabilir.")
+    
+    # İlk manuel tarama
+    tarama_yap()
+    
+    # Otomatik tarama döngüsü
+    while True:
+        try:
+            now = datetime.now(TR_TZ)
+            # Hafta içi ve saat 10:00-18:00 arasında mı kontrol et
+            if now.weekday() < 5 and 10 <= now.hour < 18:
+                tarama_yap()
+                time.sleep(60)  # Her 60 saniyede bir tarama yap
+            else:
+                # İşlem saatleri dışındaysa, bir sonraki 10:00'a kadar bekle
+                print(f"İşlem saatleri dışında: {now.strftime('%Y-%m-%d %H:%M:%S')}. Bir sonraki işlem saatini bekliyor...")
+                next_day = now + timedelta(days=1) if now.hour >= 18 else now
+                next_run = datetime(next_day.year, next_day.month, next_day.day, 10, 0, tzinfo=TR_TZ)
+                if now.weekday() >= 5:  # Hafta sonuysa, bir sonraki Pazartesi 10:00'a kadar bekle
+                    next_run += timedelta(days=(7 - now.weekday()))
+                wait_seconds = (next_run - now).total_seconds()
+                print(f"Bir sonraki tarama: {next_run.strftime('%Y-%m-%d %H:%M:%S')}. {wait_seconds/3600:.2f} saat sonra.")
+                time.sleep(max(wait_seconds, 60))  # En az 60 saniye bekle
+        except KeyboardInterrupt:
+            print("Program kullanıcı tarafından durduruldu.")
+            break
+        except Exception as e:
+            print(f"Otomatik tarama sırasında hata oluştu: {e}")
+            time.sleep(60)  # Hata durumunda 1 dakika bekle ve devam et
 
 if __name__ == "__main__":
     main()
